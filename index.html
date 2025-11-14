@@ -3,68 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>go2</title>
+<title>مخطط تطريز - 2D محسّن مع إطار ممتد</title>
 <style>
-body, html {
-  margin:0; padding:0; height:100%; width:100%;
-  font-family:'Segoe UI',sans-serif;
-  display:flex; flex-direction:column;
-  background:#f9f6ff; /* خلفية بنفسجية فاتحة */
-}
-header {
-  background: linear-gradient(90deg,#7e57c2,#512da8); /* تدرج بنفسجي ناعم */
-  color:#fff; text-align:center;
-  padding:15px 0; font-size:1.4em; font-weight:bold;
-  box-shadow:0 2px 6px rgba(0,0,0,0.1);
-}
+body, html { margin:0; padding:0; height:100%; width:100%; font-family:'Segoe UI',sans-serif; display:flex; flex-direction:column; background:#f0f2f5;}
+header { background: linear-gradient(90deg,#4b6cb7,#182848); color:#fff; text-align:center; padding:15px 0; font-size:1.4em; font-weight:bold;}
 #main { flex:1 1 auto; display:flex; justify-content:center; align-items:center; padding:20px;}
-canvas {
-  display:block;
-  background:#ffffff;
-  border-radius:20px;
-  box-shadow:0 4px 10px rgba(126,87,194,0.2);
-  border:2px solid #d1c4e9; /* بنفسجي فاتح */
-}
+canvas { display:block; background:#fff; border-radius:20px; box-shadow:0 4px 10px rgba(0,0,0,0.1); border:2px solid #ccc;}
 #board { width:80vmin; height:80vmin;}
-.controls {
-  flex:0 0 auto; padding:10px;
-  background:#ffffff;
-  display:flex; justify-content:center; align-items:center;
-  border-top:2px solid #e1bee7;
-  flex-wrap:wrap;
-}
-button {
-  padding:8px 12px; margin:5px;
-  border-radius:12px; border:none;
-  cursor:pointer; transition:0.3s;
-  background:#7e57c2; color:#fff; font-weight:600;
-  box-shadow:0 2px 4px rgba(126,87,194,0.3);
-}
-button:hover {
-  background:#512da8;
-  box-shadow:0 3px 6px rgba(81,45,168,0.4);
-}
-.upload-btn-wrapper {
-  position: relative; overflow: hidden; display: inline-block;
-}
-.upload-btn {
-  background:#7e57c2; color:white; font-weight:600;
-  padding:8px 20px; border-radius:12px; cursor:pointer;
-  box-shadow:0 2px 4px rgba(126,87,194,0.3);
-}
-.upload-btn:hover { background:#512da8; }
-.upload-btn-wrapper input[type=file] {
-  font-size:100px; position:absolute; left:0; top:0;
-  opacity:0; cursor:pointer;
-}
-.warn {
-  color:#6a1b9a; font-size:0.85em; margin-left:15px;
-  background:#ede7f6; padding:5px 10px; border-radius:10px;
-}
+.controls { flex:0 0 auto; padding:10px; background:#fff; display:flex; justify-content:center; align-items:center; border-top:2px solid #ddd; flex-wrap:wrap;}
+button { padding:8px 12px; margin:5px; border-radius:12px; border:none; cursor:pointer; transition:0.3s; background:#4b6cb7; color:#fff; font-weight:600;}
+button:hover { background:#182848; }
+.upload-btn-wrapper { position: relative; overflow: hidden; display: inline-block; }
+.upload-btn { background:#4b6cb7; color:white; font-weight:600; padding:8px 20px; border-radius:12px; cursor:pointer;}
+.upload-btn-wrapper input[type=file] { font-size:100px; position:absolute; left:0; top:0; opacity:0; cursor:pointer; }
+.warn { color:#d00; font-size:0.85em; margin-left:15px;}
 </style>
 </head>
 <body>
-<header>مخطط تطريز - 2D منضبط ومحسن</header>
+<header>مخطط تطريز - 2D محسّن مع إطار ممتد</header>
 
 <div id="main"><canvas id="board"></canvas></div>
 
@@ -85,6 +41,7 @@ let strokes = [];
 let imgWidth = 0, imgHeight = 0;
 let dw = 0, dh = 0, offsetX = 0, offsetY = 0;
 
+// ===== ضبط حجم الكانفاس =====
 function resizeCanvas() {
     board.width = board.clientWidth;
     board.height = board.clientHeight;
@@ -92,12 +49,13 @@ function resizeCanvas() {
 window.addEventListener('load', resizeCanvas);
 window.addEventListener('resize', resizeCanvas);
 
+// ===== تتبع الحواف =====
 function traceContours(imgData, width, height) {
     const data = imgData.data;
     const visited = Array(width*height).fill(false);
     const strokes = [];
     function getIndex(x,y){ return y*width+x; }
-    function isBlack(x,y){ return data[4*getIndex(x,y)]<50; }
+    function isBlack(x,y){ return data[4*getIndex(x,y)]<128; }
 
     function followContour(x0,y0){
         const contour=[];
@@ -127,7 +85,7 @@ function traceContours(imgData, width, height) {
                 return rec1.slice(0,-1).concat(rec2);
             } return [ ...points ];
         }
-        return contour.length>4 ? simplify(contour,1) : null;
+        return contour.length>4 ? simplify(contour,0.5) : null;
     }
 
     for(let y=0;y<height;y++){
@@ -141,12 +99,13 @@ function traceContours(imgData, width, height) {
     return strokes;
 }
 
+// ===== تنعيم الخطوط =====
 function smoothStroke(points){
     if(points.length<3) return points;
     const smoothed=[points[0]];
     for(let i=1;i<points.length-2;i++){
         const p0=points[i-1],p1=points[i],p2=points[i+1],p3=points[i+2];
-        for(let t=0;t<=1;t+=0.15){
+        for(let t=0;t<=1;t+=0.1){
             const tt=t*t,ttt=tt*t;
             const x=0.5*((2*p1.x)+(-p0.x+p2.x)*t+(2*p0.x-5*p1.x+4*p2.x-p3.x)*tt+(-p0.x+3*p1.x-3*p2.x+p3.x)*ttt);
             const y=0.5*((2*p1.y)+(-p0.y+p2.y)*t+(2*p0.y-5*p1.y+4*p2.y-p3.y)*tt+(-p0.y+3*p1.y-3*p2.y+p3.y)*ttt);
@@ -157,22 +116,26 @@ function smoothStroke(points){
     return smoothed;
 }
 
+// ===== رسم الغرز والإطار على الكانفاس =====
 function animateStrokes(strokes, ctx){
     ctx.clearRect(0,0,board.width,board.height);
     ctx.strokeStyle='black';
-    ctx.lineWidth=1;
+    ctx.lineWidth=1.5;
     ctx.lineJoin='round';
     ctx.lineCap='round';
 
+    // رسم الغرز
     const allPoints=[];
     for(const s of strokes){
         const smooth=smoothStroke(s);
         for(let i=1;i<smooth.length;i++) allPoints.push([smooth[i-1],smooth[i]]);
     }
-
     let index=0;
     function drawStep(){
-        if(index>=allPoints.length) return;
+        if(index>=allPoints.length){
+            drawFrame(); // بعد الانتهاء من الغرز، رسم الإطار
+            return;
+        }
         const [p1,p2]=allPoints[index];
         ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke(); index++;
         requestAnimationFrame(drawStep);
@@ -180,6 +143,26 @@ function animateStrokes(strokes, ctx){
     drawStep();
 }
 
+// ===== رسم إطار ممتد بالعرض على الكانفاس =====
+function drawFrame(){
+    if(strokes.length===0) return;
+    let minY=Infinity,maxY=-Infinity;
+    strokes.forEach(s=>s.forEach(pt=>{
+        minY=Math.min(minY,pt.y);
+        maxY=Math.max(maxY,pt.y);
+    }));
+    ctx.strokeStyle='red';
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(0,minY);
+    ctx.lineTo(board.width,minY);
+    ctx.lineTo(board.width,maxY);
+    ctx.lineTo(0,maxY);
+    ctx.lineTo(0,minY);
+    ctx.stroke();
+}
+
+// ===== رفع الصورة =====
 document.getElementById('upload').addEventListener('change',(e)=>{
     const file=e.target.files[0]; if(!file) return;
     const img = new Image(); const reader = new FileReader();
@@ -199,7 +182,7 @@ document.getElementById('upload').addEventListener('change',(e)=>{
         const imgData=tmpCtx.getImageData(0,0,tmpCanvas.width,tmpCanvas.height);
         for(let i=0;i<imgData.data.length;i+=4){
             const gray=0.3*imgData.data[i]+0.59*imgData.data[i+1]+0.11*imgData.data[i+2];
-            const val=gray<128?0:255;
+            const val=gray<100?0:255;
             imgData.data[i]=imgData.data[i+1]=imgData.data[i+2]=val;
         }
         strokes=traceContours(imgData,tmpCanvas.width,tmpCanvas.height);
@@ -207,23 +190,46 @@ document.getElementById('upload').addEventListener('change',(e)=>{
     }
 });
 
+// ===== مسح =====
 document.getElementById('clear').onclick=()=>{strokes=[];ctx.clearRect(0,0,board.width,board.height);};
 
+// ===== JSON مع إطار ممتد بالعرض =====
 function buildJSONStructured2D(strokes){
     if(strokes.length===0) return { colors:[[0,0,0]], stitches:[] };
     const result={ colors:[[0,0,0]], stitches:[] };
 
-    const scaleX = 4;
-    const scaleY = 1;
+    // حساب حدود الرسم
+    let minY=Infinity,maxY=-Infinity;
+    strokes.forEach(s=>s.forEach(pt=>{
+        minY=Math.min(minY,pt.y);
+        maxY=Math.max(maxY,pt.y);
+    }));
 
+    // إطار ممتد بالعرض كامل
+    const framePts=[
+        {x:0, y:minY},
+        {x:board.width, y:minY},
+        {x:board.width, y:maxY},
+        {x:0, y:maxY},
+        {x:0, y:minY}
+    ];
+    framePts.forEach(pt=>{
+        const x=Math.round((pt.x-offsetX)/dw*imgWidth);
+        const y=Math.round((pt.y-offsetY)/dh*imgHeight);
+        result.stitches.push({ color_idx:0, x, y });
+    });
+
+    // إضافة الغرز الفعلية
     strokes.forEach(stroke=>stroke.forEach(pt=>{
-        const x = Math.round(((pt.x - offsetX) / dw * imgWidth) * scaleX);
-        const y = Math.round(((pt.y - offsetY) / dh * imgHeight) * scaleY);
+        const x=Math.round((pt.x-offsetX)/dw*imgWidth);
+        const y=Math.round((pt.y-offsetY)/dh*imgHeight);
         result.stitches.push({ color_idx:0, x, y });
     }));
+
     return result;
 }
 
+// ===== DST محسّن =====
 const MAX_STEP=1;
 function splitStep(dx,dy){ const steps=[]; let rx=dx,ry=dy; while(Math.abs(rx)>MAX_STEP||Math.abs(ry)>MAX_STEP){ const sx=Math.max(-MAX_STEP,Math.min(MAX_STEP,rx)); const sy=Math.max(-MAX_STEP,Math.min(MAX_STEP,ry)); steps.push([sx,sy]); rx-=sx; ry-=sy;} steps.push([rx,ry]); return steps;}
 function encodeStep(dx,dy,control){ let b0=0,b1=0,b2=0; function applyAxis(v,axis){ const sign=v<0?-1:1; let absv=Math.abs(v); const W=[81,27,9,3,1]; for(const w of W){ if(absv>=w){ if(axis==='x'){ if(w===1)b0|=(sign>0?0x01:0x02); else if(w===9)b0|=(sign>0?0x04:0x08); else if(w===3)b1|=(sign>0?0x01:0x02); else if(w===27)b1|=(sign>0?0x04:0x08); else if(w===81)b2|=(sign>0?0x20:0x40);} else{ if(w===1)b0|=(sign>0?0x10:0x20); else if(w===9)b0|=(sign>0?0x40:0x80); else if(w===3)b1|=(sign>0?0x10:0x20); else if(w===27)b1|=(sign>0?0x40:0x80); else if(w===81)b2|=(sign>0?0x04:0x08);} absv-=w;}}} applyAxis(dx,'x'); applyAxis(dy,'y'); if(control===0)b2|=0x03; else if(control===1)b2|=0x83; else if(control===2)b2|=0x23; return [b0&0xFF,b1&0xFF,b2&0xFF];}
@@ -248,6 +254,7 @@ function buildDSTfromStructuredJSON(json){
     return buf.buffer;
 }
 
+// ===== تنزيل =====
 document.getElementById('export').onclick=()=>{
     if(strokes.length===0){ alert('ارفع صورة أو ارسم شيئًا أولاً'); return; }
     const jsonData=buildJSONStructured2D(strokes);
@@ -259,9 +266,7 @@ document.getElementById('export').onclick=()=>{
     const dstBuffer=buildDSTfromStructuredJSON(jsonData);
     if(!dstBuffer){ alert('خطأ في إنشاء ملف DST'); return; }
     const dstBlob=new Blob([dstBuffer],{type:'application/octet-stream'});
-    const dstUrl=URL.createObjectURL(dstBlob);
-    const aDST=document.createElement('a'); aDST.href=dstUrl; aDST.download='design.dst'; aDST.click();
-    URL.revokeObjectURL(dstUrl);
+    const aDST=document.createElement('a'); aDST.href=URL.createObjectURL(dstBlob); aDST.download='design.dst'; aDST.click();
 };
 </script>
 </body>
